@@ -16,7 +16,7 @@
       box-sizing: border-box;
     }
 
-    /* Force landscape mode when ?rotate=1 is present */
+    /* Force landscape mode when ?rotate=1 is present in URL */
     body.landscape {
       -webkit-transform: rotate(90deg);
       transform: rotate(90deg);
@@ -131,7 +131,7 @@
   <header>
     <h1>KMB ETA Dashboard</h1>
     <div class="header-actions">
-      <span id="weather-info">元朗 --°C</span>
+      <span id="weather-info">元朗 --&deg;C</span>
       <span id="last-updated">Updating...</span>
       <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
@@ -140,7 +140,7 @@
 
   <div id="dashboard-container"></div>
 
-  <!-- Invisible canvas to force Kindle screen to stay awake -->
+  <!-- Invisible canvas loop to reduce Kindle screen auto-sleep -->
   <canvas id="keep-awake-canvas" width="1" height="1" style="display:none;"></canvas>
 
   <script>
@@ -166,7 +166,7 @@
       }
     ];
 
-    // Fetch live weather data for Yuen Long from Hong Kong Observatory Open Data API
+    // Fetch weather data for Yuen Long using HKO Open API
     function fetchWeather() {
       var url = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc";
       var xhr = new XMLHttpRequest();
@@ -190,14 +190,15 @@
             }
             var weatherElem = document.getElementById("weather-info");
             if (weatherElem && yuenLongTemp !== null) {
-              var displayText = "元朗 " + yuenLongTemp + "°C";
+              // Using &deg; via innerHTML ensures the degree symbol renders on legacy WebKit
+              var displayText = "元朗 " + yuenLongTemp + "&deg;C";
               if (humidity) {
                 displayText += " " + humidity;
               }
-              weatherElem.textContent = displayText;
+              weatherElem.innerHTML = displayText;
             }
           } catch (e) {
-            // Ignore error gracefully on offline or parse failure
+            // Silence parsing errors
           }
         }
       };
@@ -225,6 +226,7 @@
       xhr.send();
     }
 
+    // Explicitly parse ISO strings (+08:00) into UTC milliseconds directly
     function parseISOTime(str) {
       if (!str) return NaN;
       var parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+08:00$/);
@@ -250,6 +252,7 @@
       return diffMins <= 0 ? "Arriving" : diffMins + " min";
     }
 
+    // Force formatting to Hong Kong Time (UTC+8) regardless of Kindle system timezone
     function formatTime(etaString) {
       if (!etaString) return "--:--";
       if (etaString.indexOf("T") !== -1 && etaString.length >= 16) {
@@ -328,6 +331,7 @@
         })(GROUPS[g]);
       }
 
+      // Keep header clock locked to HKT (UTC+8)
       var now = new Date();
       var h = (now.getUTCHours() + 8) % 24;
       var m = now.getUTCMinutes();
