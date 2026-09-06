@@ -166,11 +166,13 @@
       }
     ];
 
-    // Fetch weather data for Yuen Long using HKO Open API
+    // Fetch weather data for Yuen Long via CORS proxy to bypass browser cross-origin blocks
     function fetchWeather() {
-      var url = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc";
+      var targetUrl = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc";
+      var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+
       var xhr = new XMLHttpRequest();
-      xhr.open("GET", url, true);
+      xhr.open("GET", proxyUrl, true);
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
           try {
@@ -190,7 +192,7 @@
             }
             var weatherElem = document.getElementById("weather-info");
             if (weatherElem && yuenLongTemp !== null) {
-              // Using &deg; via innerHTML ensures the degree symbol renders on legacy WebKit
+              // Using innerHTML with &deg; ensures reliable degree symbol rendering on legacy WebKit
               var displayText = "元朗 " + yuenLongTemp + "&deg;C";
               if (humidity) {
                 displayText += " " + humidity;
