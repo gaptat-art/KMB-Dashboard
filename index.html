@@ -6,17 +6,17 @@
   <meta http-equiv="refresh" content="30">
   <title>KMB Live ETA Dashboard</title>
   <style>
-    /* High-contrast base styles for E-Ink & Legacy Browsers */
+    /* Scaled up UI for high readability on Kindle Paperwhite E-Ink displays */
     body {
       font-family: sans-serif;
       background-color: #ffffff;
       color: #000000;
       margin: 0;
-      padding: 10px;
+      padding: 16px;
       box-sizing: border-box;
     }
 
-    /* Force landscape mode when ?rotate=1 is in the URL */
+    /* Force landscape mode when ?rotate=1 is present */
     body.landscape {
       -webkit-transform: rotate(90deg);
       transform: rotate(90deg);
@@ -32,28 +32,30 @@
     }
 
     header {
-      border-bottom: 2px solid #000000;
-      padding-bottom: 5px;
-      margin-bottom: 10px;
+      border-bottom: 4px solid #000000;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
     }
 
     h1 {
       margin: 0;
-      font-size: 1.2rem;
+      font-size: 2.2rem;
+      font-weight: bold;
       display: inline-block;
     }
 
     .header-actions {
       float: right;
-      font-size: 0.8rem;
+      font-size: 1.3rem;
+      margin-top: 4px;
     }
 
     .refresh-btn {
       background-color: #ffffff;
       color: #000000;
-      border: 1px solid #000000;
-      padding: 2px 6px;
-      font-size: 0.8rem;
+      border: 3px solid #000000;
+      padding: 6px 14px;
+      font-size: 1.2rem;
       font-weight: bold;
       cursor: pointer;
     }
@@ -63,36 +65,38 @@
     }
 
     .section-title {
-      font-size: 1.1rem;
+      font-size: 1.8rem;
       font-weight: bold;
-      margin: 15px 0 8px 0;
-      padding-left: 5px;
-      border-left: 4px solid #000000;
+      margin: 25px 0 12px 0;
+      padding-left: 10px;
+      border-left: 8px solid #000000;
     }
 
     .card {
       background-color: #ffffff;
-      border: 2px solid #000000;
-      border-radius: 4px;
-      padding: 8px;
-      margin-bottom: 8px;
+      border: 3px solid #000000;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 16px;
     }
 
     .route-header {
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 4px;
-      margin-bottom: 4px;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
     }
 
     .route-number {
-      font-size: 1.5rem;
+      font-size: 2.8rem;
       font-weight: bold;
+      line-height: 1;
     }
 
     .destination {
-      font-size: 0.9rem;
+      font-size: 1.6rem;
+      font-weight: bold;
       float: right;
-      margin-top: 5px;
+      margin-top: 8px;
     }
 
     .eta-list {
@@ -102,12 +106,13 @@
     }
 
     .eta-item {
-      padding: 3px 0;
-      border-bottom: 1px dashed #666666;
-      font-size: 0.9rem;
+      padding: 8px 0;
+      border-bottom: 2px dashed #000000;
+      font-size: 1.6rem;
     }
 
     .eta-time {
+      font-size: 1.8rem;
       font-weight: bold;
       float: right;
     }
@@ -127,12 +132,10 @@
   <div id="dashboard-container"></div>
 
   <script>
-    // Enable landscape rotation if ?rotate=1 is present in the URL
     if (window.location.search.indexOf('rotate=1') !== -1) {
       document.body.className += ' landscape';
     }
 
-    // Bus Route Configurations by Location
     var GROUPS = [
       {
         title: "形點出發",
@@ -151,7 +154,6 @@
       }
     ];
 
-    // ES5 Compatible API Fetcher (XMLHttpRequest for legacy Kindle WebKit)
     function fetchETA(stopId, route, serviceType, callback) {
       var url = "https://data.etabus.gov.hk/v1/transport/kmb/eta/" + stopId + "/" + route + "/" + serviceType;
       var xhr = new XMLHttpRequest();
