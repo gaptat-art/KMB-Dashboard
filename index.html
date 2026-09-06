@@ -166,46 +166,58 @@
       }
     ];
 
-    // Fetch weather data for Yuen Long via CORS proxy to bypass browser cross-origin blocks
-    function fetchWeather() {
-      var targetUrl = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc";
-      var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", proxyUrl, true);
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          try {
-            var json = JSON.parse(xhr.responseText);
-            var yuenLongTemp = null;
-            if (json.temperature && json.temperature.data) {
-              for (var i = 0; i < json.temperature.data.length; i++) {
-                if (json.temperature.data[i].place === "元朗") {
-                  yuenLongTemp = json.temperature.data[i].value;
-                  break;
-                }
-              }
+    // Global callback for JSONP Weather fetch
+    window.handleWeatherResponse = function(json) {
+      try {
+        var yuenLongTemp = null;
+        if (json && json.temperature && json.temperature.data) {
+          for (var i = 0; i < json.temperature.data.length; i++) {
+            if (json.temperature.data[i].place === "元朗") {
+              yuenLongTemp = json.temperature.data[i].value;
+              break;
             }
-            var humidity = "";
-            if (json.humidity && json.humidity.data && json.humidity.data.length > 0) {
-              humidity = json.humidity.data[0].value + "%";
-            }
-            var weatherElem = document.getElementById("weather-info");
-            if (weatherElem && yuenLongTemp !== null) {
-              // Using innerHTML with &deg; ensures reliable degree symbol rendering on legacy WebKit
-              var displayText = "元朗 " + yuenLongTemp + "&deg;C";
-              if (humidity) {
-                displayText += " " + humidity;
-              }
-              weatherElem.innerHTML = displayText;
-            }
-          } catch (e) {
-            // Silence parsing errors
           }
         }
-      };
-      xhr.send();
+        var humidity = "";
+        if (json && json.humidity && json.humidity.data && json.humidity.data.length > 0) {
+          humidity = json.humidity.data[0].value + "%";
+        }
+        var weatherElem = document.getElementById("weather-info");
+        if (weatherElem && yuenLongTemp !== null) {
+          var displayText = "元朗 " + yuenLongTemp + "&deg;C";
+          if (humidity) {
+            displayText += " " + humidity;
+          }
+          weatherElem.innerHTML = displayText;
+        }
+      } catch (e) {
+        // Silently handle format errors
+      }
+    };
+
+    // JSONP mechanism avoids CORS/proxy issues on Kindle WebKit
+    function fetchWeather() {
+      var oldScript = document.getElementById("weather-script");
+      if (oldScript) {
+        oldScript.parentNode.removeChild(oldScript);
+      }
+      var script = document.createElement("script");
+      script.id = "weather-script";
+      script.src = "https://api.allorigins.win/get?url=" + 
+                 encodeURIComponent("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc") + 
+                 "&callback=handleWeatherJSONP";
+      document.body.appendChild(script);
     }
+
+    // Wrapper to extract AllOrigins JSON wrapper content
+    window.handleWeatherJSONP = function(response) {
+      if (response && response.contents) {
+        try {
+          var data = typeof response.contents === "string" ? JSON.parse(response.contents) : response.contents;
+          window.handleWeatherResponse(data);
+        } catch(e) {}
+      }
+    };
 
     function fetchETA(stopId, route, serviceType, callback) {
       var url = "https://data.etabus.gov.hk/v1/transport/kmb/eta/" + stopId + "/" + route + "/" + serviceType;
@@ -228,7 +240,6 @@
       xhr.send();
     }
 
-    // Explicitly parse ISO strings (+08:00) into UTC milliseconds directly
     function parseISOTime(str) {
       if (!str) return NaN;
       var parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+08:00$/);
@@ -254,7 +265,6 @@
       return diffMins <= 0 ? "Arriving" : diffMins + " min";
     }
 
-    // Force formatting to Hong Kong Time (UTC+8) regardless of Kindle system timezone
     function formatTime(etaString) {
       if (!etaString) return "--:--";
       if (etaString.indexOf("T") !== -1 && etaString.length >= 16) {
@@ -333,7 +343,6 @@
         })(GROUPS[g]);
       }
 
-      // Keep header clock locked to HKT (UTC+8)
       var now = new Date();
       var h = (now.getUTCHours() + 8) % 24;
       var m = now.getUTCMinutes();
