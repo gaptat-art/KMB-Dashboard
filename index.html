@@ -6,121 +6,78 @@
   <meta http-equiv="refresh" content="30">
   <title>KMB Live ETA Dashboard</title>
   <style>
-    :root {
-      --bg-color: #0f172a;
-      --card-bg: #1e293b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #ef4444; /* KMB Red */
-      --highlight: #38bdf8;
-      --btn-bg: #334155;
-    }
-
-    /* E-Ink friendly high-contrast theme via query string (?eink=1) */
-    body.eink {
-      --bg-color: #ffffff;
-      --card-bg: #ffffff;
-      --text-main: #000000;
-      --text-muted: #444444;
-      --accent: #000000;
-      --highlight: #000000;
-      --btn-bg: #eeeeee;
-    }
-
+    /* Legacy-compatible CSS (No CSS Variables for E-Ink stability) */
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
+      font-family: sans-serif;
+      background-color: #ffffff;
+      color: #000000;
       margin: 0;
-      padding: 1.5rem;
+      padding: 10px;
       box-sizing: border-box;
     }
 
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-      border-bottom: 2px solid var(--accent);
-      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
     }
 
-    h1 { margin: 0; font-size: 1.5rem; }
+    h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      display: inline-block;
+    }
 
     .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+      float: right;
+      font-size: 0.8rem;
     }
-
-    #last-updated { font-size: 0.85rem; color: var(--text-muted); }
 
     .refresh-btn {
-      background-color: var(--btn-bg);
-      color: var(--text-main);
-      border: 1px solid var(--accent);
-      padding: 0.4rem 0.8rem;
-      border-radius: 6px;
-      font-size: 0.85rem;
+      background-color: #ffffff;
+      color: #000000;
+      border: 1px solid #000000;
+      padding: 2px 6px;
+      font-size: 0.8rem;
       font-weight: bold;
       cursor: pointer;
-      transition: opacity 0.2s;
     }
 
-    .refresh-btn:active {
-      opacity: 0.6;
-    }
-
-    body.eink .refresh-btn {
-      border: 2px solid #000000;
+    .clear {
+      clear: both;
     }
 
     .section-title {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: bold;
-      margin: 1.5rem 0 0.75rem 0;
-      padding-left: 0.5rem;
-      border-left: 4px solid var(--accent);
-      color: var(--text-main);
-    }
-
-    body.eink .section-title {
+      margin: 15px 0 8px 0;
+      padding-left: 5px;
       border-left: 4px solid #000000;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1rem;
-    }
-
     .card {
-      background-color: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 1rem;
+      background-color: #ffffff;
+      border: 2px solid #000000;
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 8px;
     }
-
-    body.eink .card { border: 2px solid #000; }
 
     .route-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
     }
 
     .route-number {
-      font-size: 1.8rem;
+      font-size: 1.5rem;
       font-weight: bold;
-      color: var(--accent);
     }
 
-    body.eink .route-number { color: #000; }
-
     .destination {
-      font-size: 1rem;
-      color: var(--text-muted);
+      font-size: 0.9rem;
+      float: right;
+      margin-top: 5px;
     }
 
     .eta-list {
@@ -130,16 +87,15 @@
     }
 
     .eta-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.4rem 0;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+      padding: 3px 0;
+      border-bottom: 1px dashed #666666;
+      font-size: 0.9rem;
     }
 
-    body.eink .eta-item { border-bottom: 1px dashed #000; }
-
-    .eta-time { font-weight: bold; color: var(--highlight); }
-    body.eink .eta-time { color: #000; }
+    .eta-time {
+      font-weight: bold;
+      float: right;
+    }
   </style>
 </head>
 <body>
@@ -147,16 +103,17 @@
   <header>
     <h1>KMB ETA Dashboard</h1>
     <div class="header-actions">
-      <div id="last-updated">Updating...</div>
-      <button class="refresh-btn" onclick="updateDashboard()">刷新 Refresh</button>
+      <span id="last-updated">Updating...</span>
+      <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
+    <div class="clear"></div>
   </header>
 
   <div id="dashboard-container"></div>
 
   <script>
-    // Configuration: Categorized by location
-    const GROUPS = [
+    // Configuration
+    var GROUPS = [
       {
         title: "形點出發",
         watchlist: [
@@ -174,95 +131,121 @@
       }
     ];
 
-    // Check for E-Ink high-contrast query flag (?eink=1)
-    if (new URLSearchParams(window.location.search).get('eink') === '1') {
-      document.body.classList.add('eink');
-    }
-
-    async function fetchETA(stopId, route, serviceType) {
-      const url = `https://data.etabus.gov.hk/v1/transport/kmb/eta/${stopId}/${route}/${serviceType}`;
-      try {
-        const response = await fetch(url);
-        const json = await response.json();
-        return json.data || [];
-      } catch (err) {
-        console.error("API Fetch Error:", err);
-        return [];
-      }
+    // Legacy ES5 Fetch Wrapper (XMLHttpRequest for old WebKit)
+    function fetchETA(stopId, route, serviceType, callback) {
+      const url = "https://data.etabus.gov.hk/v1/transport/kmb/eta/" + stopId + "/" + route + "/" + serviceType;
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            try {
+              var json = JSON.parse(xhr.responseText);
+              callback(json.data || []);
+            } catch (e) {
+              callback([]);
+            }
+          } else {
+            callback([]);
+          }
+        }
+      };
+      xhr.send();
     }
 
     function calculateMinutes(etaString) {
       if (!etaString) return "No data";
-      const etaTime = new Date(etaString);
-      const diffMs = etaTime - new Date();
-      const diffMins = Math.ceil(diffMs / 60000);
-      return diffMins <= 0 ? "Arriving" : `${diffMins} min`;
+      var etaTime = new Date(etaString);
+      var diffMs = etaTime.getTime() - new Date().getTime();
+      var diffMins = Math.ceil(diffMs / 60000);
+      return diffMins <= 0 ? "Arriving" : diffMins + " min";
     }
 
-    async function updateDashboard() {
-      const container = document.getElementById("dashboard-container");
+    function formatTime(etaString) {
+      if (!etaString) return "--:--";
+      var d = new Date(etaString);
+      var hours = d.getHours();
+      var minutes = d.getMinutes();
+      if (hours < 10) hours = "0" + hours;
+      if (minutes < 10) minutes = "0" + minutes;
+      return hours + ":" + minutes;
+    }
+
+    function updateDashboard() {
+      var container = document.getElementById("dashboard-container");
       container.innerHTML = "";
 
-      for (const group of GROUPS) {
-        // Create Section Title
-        const sectionHeader = document.createElement("div");
-        sectionHeader.className = "section-title";
-        sectionHeader.textContent = group.title;
-        container.appendChild(sectionHeader);
+      for (var g = 0; g < GROUPS.length; g++) {
+        (function(group) {
+          var sectionHeader = document.createElement("div");
+          sectionHeader.className = "section-title";
+          sectionHeader.textContent = group.title;
+          container.appendChild(sectionHeader);
 
-        // Create Grid Container for this group
-        const grid = document.createElement("div");
-        grid.className = "grid";
-
-        if (group.watchlist.length === 0) {
-          const emptyCard = document.createElement("div");
-          emptyCard.className = "card";
-          emptyCard.innerHTML = `<div class="destination">No routes configured for this section yet.</div>`;
-          grid.appendChild(emptyCard);
-        } else {
-          for (const target of group.watchlist) {
-            const etas = await fetchETA(target.stopId, target.route, target.serviceType);
-            const card = document.createElement("div");
-            card.className = "card";
-
-            const destName = etas[0]?.dest_tc || "Unknown Destination";
-            let etaRows = "";
-
-            if (etas.length === 0) {
-              etaRows = `<li class="eta-item">No upcoming departures</li>`;
-            } else {
-              etas.slice(0, 3).forEach(item => {
-                const minText = calculateMinutes(item.eta);
-                const timeFormatted = item.eta ? new Date(item.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
-                const remark = item.rmk_tc ? `(${item.rmk_tc})` : "";
+          if (group.watchlist.length === 0) {
+            var emptyCard = document.createElement("div");
+            emptyCard.className = "card";
+            emptyCard.innerHTML = '<div class="destination">No routes configured.</div>';
+            container.appendChild(emptyCard);
+          } else {
+            for (var w = 0; w < group.watchlist.length; w++) {
+              (function(target) {
+                var card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = '<div class="route-header">' +
+                  '<span class="route-number">' + target.route + '</span>' +
+                  '<span class="destination" id="dest-' + target.route + '-' + target.stopId + '">往 Loading...</span>' +
+                  '<div class="clear"></div>' +
+                  '</div>' +
+                  '<ul class="eta-list" id="list-' + target.route + '-' + target.stopId + '"><li class="eta-item">Loading...</li></ul>';
                 
-                etaRows += `
-                  <li class="eta-item">
-                    <span>${timeFormatted} ${remark}</span>
-                    <span class="eta-time">${minText}</span>
-                  </li>`;
-              });
+                container.appendChild(card);
+
+                fetchETA(target.stopId, target.route, target.serviceType, function(etas) {
+                  var destElem = document.getElementById("dest-" + target.route + "-" + target.stopId);
+                  var listElem = document.getElementById("list-" + target.route + "-" + target.stopId);
+
+                  var destName = (etas.length > 0 && etas[0].dest_tc) ? etas[0].dest_tc : "Unknown Destination";
+                  if (destElem) destElem.textContent = "往 " + destName;
+
+                  var etaRows = "";
+                  if (etas.length === 0) {
+                    etaRows = '<li class="eta-item">No upcoming departures</li>';
+                  } else {
+                    var limit = etas.length < 3 ? etas.length : 3;
+                    for (var i = 0; i < limit; i++) {
+                      var item = etas[i];
+                      var minText = calculateMinutes(item.eta);
+                      var timeFormatted = formatTime(item.eta);
+                      var remark = item.rmk_tc ? " (" + item.rmk_tc + ")" : "";
+
+                      etaRows += '<li class="eta-item">' +
+                        '<span>' + timeFormatted + remark + '</span>' +
+                        '<span class="eta-time">' + minText + '</span>' +
+                        '<div class="clear"></div>' +
+                        '</li>';
+                    }
+                  }
+                  if (listElem) listElem.innerHTML = etaRows;
+                });
+              })(group.watchlist[w]);
             }
-
-            card.innerHTML = `
-              <div class="route-header">
-                <span class="route-number">${target.route}</span>
-                <span class="destination">往 ${destName}</span>
-              </div>
-              <ul class="eta-list">${etaRows}</ul>
-            `;
-            grid.appendChild(card);
           }
-        }
-
-        container.appendChild(grid);
+        })(GROUPS[g]);
       }
 
-      document.getElementById("last-updated").textContent = "Updated: " + new Date().toLocaleTimeString();
+      var now = new Date();
+      var h = now.getHours();
+      var m = now.getMinutes();
+      var s = now.getSeconds();
+      if (h < 10) h = "0" + h;
+      if (m < 10) m = "0" + m;
+      if (s < 10) s = "0" + s;
+      document.getElementById("last-updated").textContent = h + ":" + m + ":" + s;
     }
 
     updateDashboard();
-    setInterval(updateDashboard, 20000); // Dynamic update every 20s for iPad
+    setInterval(updateDashboard, 20000);
   </script>
 </body>
 </html>
