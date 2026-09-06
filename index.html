@@ -2,18 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="refresh" content="30">
   <title>KMB Live ETA Dashboard</title>
   <style>
-    /* Scaled up UI for high readability on Kindle Paperwhite E-Ink displays */
-    body {
-      font-family: sans-serif;
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
       background-color: #ffffff;
       color: #000000;
-      margin: 0;
-      padding: 16px;
-      box-sizing: border-box;
+      font-family: sans-serif;
+    }
+
+    body {
+      padding: 8px;
     }
 
     /* Force landscape mode when ?rotate=1 is present in URL */
@@ -28,122 +37,156 @@
       width: 100vh;
       height: 100vw;
       overflow-x: hidden;
-      box-sizing: border-box;
     }
 
     header {
-      border-bottom: 4px solid #000000;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
+      border-bottom: 3px solid #000000;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .header-row-1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
     }
 
     h1 {
       margin: 0;
-      font-size: 2.2rem;
+      font-size: 1.6rem;
       font-weight: bold;
-      display: inline-block;
+      white-space: nowrap;
     }
 
-    .header-actions {
-      float: right;
-      font-size: 1.3rem;
-      margin-top: 4px;
+    .header-row-2 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: bold;
     }
 
     #weather-info {
       font-weight: bold;
-      font-size: 1.8rem;
-      margin-right: 12px;
-      border-right: 3px solid #000000;
-      padding-right: 12px;
-      display: inline-block;
-      vertical-align: middle;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .last-updated-text {
-      vertical-align: middle;
+    .right-status {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    #last-updated {
+      margin-right: 6px;
     }
 
     .refresh-btn {
       background-color: #ffffff;
       color: #000000;
-      border: 3px solid #000000;
-      padding: 6px 14px;
-      font-size: 1.2rem;
+      border: 2px solid #000000;
+      padding: 2px 8px;
+      font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
-      margin-left: 8px;
-      vertical-align: middle;
-    }
-
-    .clear {
-      clear: both;
     }
 
     .section-title {
-      font-size: 1.8rem;
+      font-size: 1.4rem;
       font-weight: bold;
-      margin: 25px 0 12px 0;
-      padding-left: 10px;
-      border-left: 8px solid #000000;
+      margin: 16px 0 8px 0;
+      padding-left: 8px;
+      border-left: 6px solid #000000;
     }
 
     .card {
       background-color: #ffffff;
-      border: 3px solid #000000;
-      border-radius: 6px;
-      padding: 14px;
-      margin-bottom: 16px;
+      border: 2px solid #000000;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 10px;
+      width: 100%;
     }
 
     .route-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
       border-bottom: 2px solid #000000;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .route-number {
-      font-size: 2.8rem;
+      font-size: 2.2rem;
       font-weight: bold;
       line-height: 1;
     }
 
     .destination {
-      font-size: 1.6rem;
+      font-size: 1.2rem;
       font-weight: bold;
-      float: right;
-      margin-top: 8px;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 70%;
     }
 
     .eta-list {
       list-style: none;
       padding: 0;
       margin: 0;
+      width: 100%;
     }
 
     .eta-item {
-      padding: 8px 0;
-      border-bottom: 2px dashed #000000;
-      font-size: 1.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px dashed #000000;
+      font-size: 1.2rem;
+      width: 100%;
+    }
+
+    .eta-item:last-child {
+      border-bottom: none;
+    }
+
+    .eta-details {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 8px;
     }
 
     .eta-time {
-      font-size: 1.8rem;
+      font-size: 1.3rem;
       font-weight: bold;
-      float: right;
+      white-space: nowrap;
+      text-align: right;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>KMB ETA Dashboard</h1>
-    <div class="header-actions">
-      <span id="weather-info">香港 --&deg;C</span>
-      <span id="last-updated" class="last-updated-text">Updating...</span>
+    <div class="header-row-1">
+      <h1>KMB ETA Dashboard</h1>
       <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
-    <div class="clear"></div>
+    <div class="header-row-2">
+      <span id="weather-info">香港 --&deg;C</span>
+      <div class="right-status">
+        <span id="last-updated">Updating...</span>
+      </div>
+    </div>
   </header>
 
   <div id="dashboard-container"></div>
@@ -174,7 +217,6 @@
       }
     ];
 
-    // Map WMO weather codes to human-readable Traditional Chinese descriptions
     function getWeatherConditionText(code) {
       switch (code) {
         case 0:  return "天晴";
@@ -209,7 +251,6 @@
       }
     }
 
-    // Fetch Hong Kong weather from Open-Meteo API
     function fetchWeather() {
       var url = "https://api.open-meteo.com/v1/forecast?latitude=22.3193&longitude=114.1694&current=temperature_2m,relative_humidity_2m,weather_code";
       var xhr = new XMLHttpRequest();
@@ -225,7 +266,6 @@
 
               var weatherElem = document.getElementById("weather-info");
               if (weatherElem) {
-                // Formats as: "香港 天晴 28°C 75%"
                 var displayText = "香港 ";
                 if (conditionText) {
                   displayText += conditionText + " ";
@@ -237,9 +277,7 @@
                 weatherElem.innerHTML = displayText;
               }
             }
-          } catch (e) {
-            // Silently ignore parse errors
-          }
+          } catch (e) {}
         }
       };
       xhr.send();
@@ -330,9 +368,8 @@
                 card.innerHTML = '<div class="route-header">' +
                   '<span class="route-number">' + target.route + '</span>' +
                   '<span class="destination" id="dest-' + target.route + '-' + target.stopId + '">往 Loading...</span>' +
-                  '<div class="clear"></div>' +
                   '</div>' +
-                  '<ul class="eta-list" id="list-' + target.route + '-' + target.stopId + '"><li class="eta-item">Loading...</li></ul>';
+                  '<ul class="eta-list" id="list-' + target.route + '-' + target.stopId + '"><li class="eta-item"><span class="eta-details">Loading...</span></li></ul>';
                 
                 container.appendChild(card);
 
@@ -345,7 +382,7 @@
 
                   var etaRows = "";
                   if (etas.length === 0) {
-                    etaRows = '<li class="eta-item">No upcoming departures</li>';
+                    etaRows = '<li class="eta-item"><span class="eta-details">No upcoming departures</span></li>';
                   } else {
                     var limit = etas.length < 3 ? etas.length : 3;
                     for (var i = 0; i < limit; i++) {
@@ -355,9 +392,8 @@
                       var remark = item.rmk_tc ? " (" + item.rmk_tc + ")" : "";
 
                       etaRows += '<li class="eta-item">' +
-                        '<span>' + timeFormatted + remark + '</span>' +
+                        '<span class="eta-details">' + timeFormatted + remark + '</span>' +
                         '<span class="eta-time">' + minText + '</span>' +
-                        '<div class="clear"></div>' +
                         '</li>';
                     }
                   }
@@ -379,7 +415,6 @@
       document.getElementById("last-updated").textContent = h + ":" + m + ":" + s;
     }
 
-    // Keep awake canvas redraw pulse
     var canvas = document.getElementById('keep-awake-canvas');
     if (canvas && canvas.getContext) {
       var ctx = canvas.getContext('2d');
