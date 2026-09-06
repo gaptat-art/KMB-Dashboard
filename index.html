@@ -52,9 +52,16 @@
 
     #weather-info {
       font-weight: bold;
+      font-size: 1.8rem;
       margin-right: 12px;
-      border-right: 2px solid #000000;
-      padding-right: 10px;
+      border-right: 3px solid #000000;
+      padding-right: 12px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .last-updated-text {
+      vertical-align: middle;
     }
 
     .refresh-btn {
@@ -66,6 +73,7 @@
       font-weight: bold;
       cursor: pointer;
       margin-left: 8px;
+      vertical-align: middle;
     }
 
     .clear {
@@ -132,7 +140,7 @@
     <h1>KMB ETA Dashboard</h1>
     <div class="header-actions">
       <span id="weather-info">香港 --&deg;C</span>
-      <span id="last-updated">Updating...</span>
+      <span id="last-updated" class="last-updated-text">Updating...</span>
       <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
     <div class="clear"></div>
