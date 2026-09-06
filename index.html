@@ -175,19 +175,41 @@
       xhr.send();
     }
 
+    // Force ISO parsing to UTC milliseconds without relying on browser system timezone
+    function parseISOTime(str) {
+      if (!str) return NaN;
+      var parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+08:00$/);
+      if (parts) {
+        return Date.UTC(
+          parseInt(parts[1], 10),
+          parseInt(parts[2], 10) - 1,
+          parseInt(parts[3], 10),
+          parseInt(parts[4], 10) - 8,
+          parseInt(parts[5], 10),
+          parseInt(parts[6], 10)
+        );
+      }
+      return new Date(str).getTime();
+    }
+
     function calculateMinutes(etaString) {
       if (!etaString) return "No data";
-      var etaTime = new Date(etaString);
-      var diffMs = etaTime.getTime() - new Date().getTime();
+      var etaMs = parseISOTime(etaString);
+      if (isNaN(etaMs)) return "No data";
+      var diffMs = etaMs - new Date().getTime();
       var diffMins = Math.ceil(diffMs / 60000);
       return diffMins <= 0 ? "Arriving" : diffMins + " min";
     }
 
+    // Extract HKT directly from ISO string or calculate via UTC offset (+8)
     function formatTime(etaString) {
       if (!etaString) return "--:--";
+      if (etaString.indexOf("T") !== -1 && etaString.length >= 16) {
+        return etaString.substring(11, 16);
+      }
       var d = new Date(etaString);
-      var hours = d.getHours();
-      var minutes = d.getMinutes();
+      var hours = (d.getUTCHours() + 8) % 24;
+      var minutes = d.getUTCMinutes();
       if (hours < 10) hours = "0" + hours;
       if (minutes < 10) minutes = "0" + minutes;
       return hours + ":" + minutes;
@@ -256,10 +278,11 @@
         })(GROUPS[g]);
       }
 
+      // Hardcode UTC+8 offset for the top header clock
       var now = new Date();
-      var h = now.getHours();
-      var m = now.getMinutes();
-      var s = now.getSeconds();
+      var h = (now.getUTCHours() + 8) % 24;
+      var m = now.getUTCMinutes();
+      var s = now.getUTCSeconds();
       if (h < 10) h = "0" + h;
       if (m < 10) m = "0" + m;
       if (s < 10) s = "0" + s;
