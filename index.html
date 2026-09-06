@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="refresh" content="30">
-  <title>KMB Live ETA Dashboard</title>
+  <title>KMB & MTR Live ETA Dashboard</title>
   <style>
     * {
       box-sizing: border-box;
@@ -179,7 +179,7 @@
 
   <header>
     <div class="header-row-1">
-      <h1>KMB ETA Dashboard</h1>
+      <h1>KMB & MTR Dashboard</h1>
       <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
     <div class="header-row-2">
@@ -204,16 +204,22 @@
       {
         title: "形點出發",
         watchlist: [
-          { route: "968X", stopId: "723EF8D7809D3ADB", serviceType: 1 },
-          { route: "276P", stopId: "4E2EC89B41600D7E", serviceType: 1 },
-          { route: "276",  stopId: "4E2EC89B41600D7E", serviceType: 1 },
-          { route: "268C", stopId: "53AC50E46ABDA85B", serviceType: 1 }
+          { type: "KMB", route: "968X", stopId: "723EF8D7809D3ADB", serviceType: 1 },
+          { type: "KMB", route: "276P", stopId: "4E2EC89B41600D7E", serviceType: 1 },
+          { type: "KMB", route: "276",  stopId: "4E2EC89B41600D7E", serviceType: 1 },
+          { type: "KMB", route: "268C", stopId: "53AC50E46ABDA85B", serviceType: 1 }
+        ]
+      },
+      {
+        title: "港鐵元朗站",
+        watchlist: [
+          { type: "MTR", line: "TML", sta: "YUL", dest: "TUM", routeName: "屯馬綫", destName: "屯門" }
         ]
       },
       {
         title: "鰂魚涌出發",
         watchlist: [
-          { route: "968X", stopId: "F75D0D2C6014A854", serviceType: 1 }
+          { type: "KMB", route: "968X", stopId: "F75D0D2C6014A854", serviceType: 1 }
         ]
       }
     ];
@@ -284,7 +290,7 @@
       xhr.send();
     }
 
-    function fetchETA(stopId, route, serviceType, callback) {
+    function fetchKMBETA(stopId, route, serviceType, callback) {
       var url = "https://data.etabus.gov.hk/v1/transport/kmb/eta/" + stopId + "/" + route + "/" + serviceType;
       var xhr = new XMLHttpRequest();
       xhr.open("GET", url, true);
@@ -305,9 +311,50 @@
       xhr.send();
     }
 
+    function fetchMTRETA(line, sta, targetDest, callback) {
+      var url = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=" + line + "&sta=" + sta;
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            try {
+              var json = JSON.parse(xhr.responseText);
+              var key = line + "-" + sta;
+              var trainData = json.data && json.data[key];
+              var results = [];
+              if (trainData) {
+                var directions = ["UP", "DOWN"];
+                for (var d = 0; d < directions.length; d++) {
+                  var list = trainData[directions[d]];
+                  if (list) {
+                    for (var i = 0; i < list.length; i++) {
+                      if (!targetDest || list[i].dest === targetDest) {
+                        results.push(list[i]);
+                      }
+                    }
+                  }
+                }
+              }
+              // Sort departures by arrival time
+              results.sort(function(a, b) {
+                return parseISOTime(a.time) - parseISOTime(b.time);
+              });
+              callback(results);
+            } catch (e) {
+              callback([]);
+            }
+          } else {
+            callback([]);
+          }
+        }
+      };
+      xhr.send();
+    }
+
     function parseISOTime(str) {
       if (!str) return NaN;
-      var parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+08:00$/);
+      var parts = str.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
       if (parts) {
         return Date.UTC(
           parseInt(parts[1], 10),
@@ -332,8 +379,13 @@
 
     function formatTime(etaString) {
       if (!etaString) return "--:--";
-      if (etaString.indexOf("T") !== -1 && etaString.length >= 16) {
-        return etaString.substring(11, 16);
+      var idx = etaString.indexOf("T");
+      if (idx !== -1 && etaString.length >= idx + 6) {
+        return etaString.substring(idx + 1, idx + 6);
+      }
+      var spaceIdx = etaString.indexOf(" ");
+      if (spaceIdx !== -1 && etaString.length >= spaceIdx + 6) {
+        return etaString.substring(spaceIdx + 1, spaceIdx + 6);
       }
       var d = new Date(etaString);
       var hours = (d.getUTCHours() + 8) % 24;
@@ -363,44 +415,73 @@
             container.appendChild(emptyCard);
           } else {
             for (var w = 0; w < group.watchlist.length; w++) {
-              (function(target) {
+              (function(target, targetIndex) {
+                var isMTR = (target.type === "MTR");
+                var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId);
+                var routeTitle = isMTR ? (target.routeName || "MTR") : target.route;
+                var initialDest = isMTR ? ("往 " + (target.destName || "Loading...")) : "往 Loading...";
+
                 var card = document.createElement("div");
                 card.className = "card";
                 card.innerHTML = '<div class="route-header">' +
-                  '<span class="route-number">' + target.route + '</span>' +
-                  '<span class="destination" id="dest-' + target.route + '-' + target.stopId + '">往 Loading...</span>' +
+                  '<span class="route-number">' + routeTitle + '</span>' +
+                  '<span class="destination" id="dest-' + cardId + '">' + initialDest + '</span>' +
                   '</div>' +
-                  '<ul class="eta-list" id="list-' + target.route + '-' + target.stopId + '"><li class="eta-item"><span class="eta-details">Loading...</span></li></ul>';
+                  '<ul class="eta-list" id="list-' + cardId + '"><li class="eta-item"><span class="eta-details">Loading...</span></li></ul>';
                 
                 container.appendChild(card);
 
-                fetchETA(target.stopId, target.route, target.serviceType, function(etas) {
-                  var destElem = document.getElementById("dest-" + target.route + "-" + target.stopId);
-                  var listElem = document.getElementById("list-" + target.route + "-" + target.stopId);
+                if (isMTR) {
+                  fetchMTRETA(target.line, target.sta, target.dest, function(trains) {
+                    var listElem = document.getElementById("list-" + cardId);
+                    var etaRows = "";
+                    if (trains.length === 0) {
+                      etaRows = '<li class="eta-item"><span class="eta-details">No upcoming departures</span></li>';
+                    } else {
+                      var limit = trains.length < 3 ? trains.length : 3;
+                      for (var i = 0; i < limit; i++) {
+                        var item = trains[i];
+                        var minText = calculateMinutes(item.time);
+                        var timeFormatted = formatTime(item.time);
+                        var platRemark = item.plat ? " (月台 " + item.plat + ")" : "";
 
-                  var destName = (etas.length > 0 && etas[0].dest_tc) ? etas[0].dest_tc : "Unknown Destination";
-                  if (destElem) destElem.textContent = "往 " + destName;
-
-                  var etaRows = "";
-                  if (etas.length === 0) {
-                    etaRows = '<li class="eta-item"><span class="eta-details">No upcoming departures</span></li>';
-                  } else {
-                    var limit = etas.length < 3 ? etas.length : 3;
-                    for (var i = 0; i < limit; i++) {
-                      var item = etas[i];
-                      var minText = calculateMinutes(item.eta);
-                      var timeFormatted = formatTime(item.eta);
-                      var remark = item.rmk_tc ? " (" + item.rmk_tc + ")" : "";
-
-                      etaRows += '<li class="eta-item">' +
-                        '<span class="eta-details">' + timeFormatted + remark + '</span>' +
-                        '<span class="eta-time">' + minText + '</span>' +
-                        '</li>';
+                        etaRows += '<li class="eta-item">' +
+                          '<span class="eta-details">' + timeFormatted + platRemark + '</span>' +
+                          '<span class="eta-time">' + minText + '</span>' +
+                          '</li>';
+                      }
                     }
-                  }
-                  if (listElem) listElem.innerHTML = etaRows;
-                });
-              })(group.watchlist[w]);
+                    if (listElem) listElem.innerHTML = etaRows;
+                  });
+                } else {
+                  fetchKMBETA(target.stopId, target.route, target.serviceType, function(etas) {
+                    var destElem = document.getElementById("dest-" + cardId);
+                    var listElem = document.getElementById("list-" + cardId);
+
+                    var destName = (etas.length > 0 && etas[0].dest_tc) ? etas[0].dest_tc : "Unknown Destination";
+                    if (destElem) destElem.textContent = "往 " + destName;
+
+                    var etaRows = "";
+                    if (etas.length === 0) {
+                      etaRows = '<li class="eta-item"><span class="eta-details">No upcoming departures</span></li>';
+                    } else {
+                      var limit = etas.length < 3 ? etas.length : 3;
+                      for (var i = 0; i < limit; i++) {
+                        var item = etas[i];
+                        var minText = calculateMinutes(item.eta);
+                        var timeFormatted = formatTime(item.eta);
+                        var remark = item.rmk_tc ? " (" + item.rmk_tc + ")" : "";
+
+                        etaRows += '<li class="eta-item">' +
+                          '<span class="eta-details">' + timeFormatted + remark + '</span>' +
+                          '<span class="eta-time">' + minText + '</span>' +
+                          '</li>';
+                      }
+                    }
+                    if (listElem) listElem.innerHTML = etaRows;
+                  });
+                }
+              })(group.watchlist[w], w);
             }
           }
         })(GROUPS[g]);
