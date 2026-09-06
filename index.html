@@ -131,7 +131,7 @@
   <header>
     <h1>KMB ETA Dashboard</h1>
     <div class="header-actions">
-      <span id="weather-info">元朗 --&deg;C</span>
+      <span id="weather-info">香港 --&deg;C</span>
       <span id="last-updated">Updating...</span>
       <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
@@ -166,58 +166,53 @@
       }
     ];
 
-    // Global callback for JSONP Weather fetch
-    window.handleWeatherResponse = function(json) {
+    // Global callback for direct HKO JSONP response
+    window.hkogovWeatherCallback = function(json) {
       try {
-        var yuenLongTemp = null;
+        var hkTemp = null;
         if (json && json.temperature && json.temperature.data) {
+          // Priority 1: Check for "香港天文台" (Hong Kong Observatory head station)
           for (var i = 0; i < json.temperature.data.length; i++) {
-            if (json.temperature.data[i].place === "元朗") {
-              yuenLongTemp = json.temperature.data[i].value;
+            if (json.temperature.data[i].place === "香港天文台") {
+              hkTemp = json.temperature.data[i].value;
               break;
             }
           }
+          // Priority 2: Fallback to the first available temperature station
+          if (hkTemp === null && json.temperature.data.length > 0) {
+            hkTemp = json.temperature.data[0].value;
+          }
         }
+
         var humidity = "";
         if (json && json.humidity && json.humidity.data && json.humidity.data.length > 0) {
           humidity = json.humidity.data[0].value + "%";
         }
+
         var weatherElem = document.getElementById("weather-info");
-        if (weatherElem && yuenLongTemp !== null) {
-          var displayText = "元朗 " + yuenLongTemp + "&deg;C";
+        if (weatherElem && hkTemp !== null) {
+          var displayText = "香港 " + hkTemp + "&deg;C";
           if (humidity) {
             displayText += " " + humidity;
           }
           weatherElem.innerHTML = displayText;
         }
       } catch (e) {
-        // Silently handle format errors
+        // Silently handle errors
       }
     };
 
-    // JSONP mechanism avoids CORS/proxy issues on Kindle WebKit
+    // Native script tag injection directly into HKO API
     function fetchWeather() {
-      var oldScript = document.getElementById("weather-script");
+      var oldScript = document.getElementById("hko-weather-script");
       if (oldScript) {
         oldScript.parentNode.removeChild(oldScript);
       }
       var script = document.createElement("script");
-      script.id = "weather-script";
-      script.src = "https://api.allorigins.win/get?url=" + 
-                 encodeURIComponent("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc") + 
-                 "&callback=handleWeatherJSONP";
+      script.id = "hko-weather-script";
+      script.src = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc&callback=hkogovWeatherCallback";
       document.body.appendChild(script);
     }
-
-    // Wrapper to extract AllOrigins JSON wrapper content
-    window.handleWeatherJSONP = function(response) {
-      if (response && response.contents) {
-        try {
-          var data = typeof response.contents === "string" ? JSON.parse(response.contents) : response.contents;
-          window.handleWeatherResponse(data);
-        } catch(e) {}
-      }
-    };
 
     function fetchETA(stopId, route, serviceType, callback) {
       var url = "https://data.etabus.gov.hk/v1/transport/kmb/eta/" + stopId + "/" + route + "/" + serviceType;
