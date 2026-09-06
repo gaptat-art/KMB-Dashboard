@@ -50,6 +50,13 @@
       margin-top: 4px;
     }
 
+    #weather-info {
+      font-weight: bold;
+      margin-right: 12px;
+      border-right: 2px solid #000000;
+      padding-right: 10px;
+    }
+
     .refresh-btn {
       background-color: #ffffff;
       color: #000000;
@@ -58,6 +65,7 @@
       font-size: 1.2rem;
       font-weight: bold;
       cursor: pointer;
+      margin-left: 8px;
     }
 
     .clear {
@@ -123,6 +131,7 @@
   <header>
     <h1>KMB ETA Dashboard</h1>
     <div class="header-actions">
+      <span id="weather-info">元朗 --°C</span>
       <span id="last-updated">Updating...</span>
       <button class="refresh-btn" onclick="updateDashboard()">刷新</button>
     </div>
@@ -130,6 +139,9 @@
   </header>
 
   <div id="dashboard-container"></div>
+
+  <!-- Invisible canvas to force Kindle screen to stay awake -->
+  <canvas id="keep-awake-canvas" width="1" height="1" style="display:none;"></canvas>
 
   <script>
     if (window.location.search.indexOf('rotate=1') !== -1) {
@@ -154,6 +166,44 @@
       }
     ];
 
+    // Fetch live weather data for Yuen Long from Hong Kong Observatory Open Data API
+    function fetchWeather() {
+      var url = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc";
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          try {
+            var json = JSON.parse(xhr.responseText);
+            var yuenLongTemp = null;
+            if (json.temperature && json.temperature.data) {
+              for (var i = 0; i < json.temperature.data.length; i++) {
+                if (json.temperature.data[i].place === "元朗") {
+                  yuenLongTemp = json.temperature.data[i].value;
+                  break;
+                }
+              }
+            }
+            var humidity = "";
+            if (json.humidity && json.humidity.data && json.humidity.data.length > 0) {
+              humidity = json.humidity.data[0].value + "%";
+            }
+            var weatherElem = document.getElementById("weather-info");
+            if (weatherElem && yuenLongTemp !== null) {
+              var displayText = "元朗 " + yuenLongTemp + "°C";
+              if (humidity) {
+                displayText += " " + humidity;
+              }
+              weatherElem.textContent = displayText;
+            }
+          } catch (e) {
+            // Ignore error gracefully on offline or parse failure
+          }
+        }
+      };
+      xhr.send();
+    }
+
     function fetchETA(stopId, route, serviceType, callback) {
       var url = "https://data.etabus.gov.hk/v1/transport/kmb/eta/" + stopId + "/" + route + "/" + serviceType;
       var xhr = new XMLHttpRequest();
@@ -175,7 +225,6 @@
       xhr.send();
     }
 
-    // Force ISO parsing to UTC milliseconds without relying on browser system timezone
     function parseISOTime(str) {
       if (!str) return NaN;
       var parts = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+08:00$/);
@@ -201,7 +250,6 @@
       return diffMins <= 0 ? "Arriving" : diffMins + " min";
     }
 
-    // Extract HKT directly from ISO string or calculate via UTC offset (+8)
     function formatTime(etaString) {
       if (!etaString) return "--:--";
       if (etaString.indexOf("T") !== -1 && etaString.length >= 16) {
@@ -216,6 +264,8 @@
     }
 
     function updateDashboard() {
+      fetchWeather();
+
       var container = document.getElementById("dashboard-container");
       container.innerHTML = "";
 
@@ -278,7 +328,6 @@
         })(GROUPS[g]);
       }
 
-      // Hardcode UTC+8 offset for the top header clock
       var now = new Date();
       var h = (now.getUTCHours() + 8) % 24;
       var m = now.getUTCMinutes();
@@ -287,6 +336,18 @@
       if (m < 10) m = "0" + m;
       if (s < 10) s = "0" + s;
       document.getElementById("last-updated").textContent = h + ":" + m + ":" + s;
+    }
+
+    // Keep awake canvas redraw pulse
+    var canvas = document.getElementById('keep-awake-canvas');
+    if (canvas && canvas.getContext) {
+      var ctx = canvas.getContext('2d');
+      var toggle = false;
+      setInterval(function() {
+        ctx.fillStyle = toggle ? "#ffffff" : "#000000";
+        ctx.fillRect(0, 0, 1, 1);
+        toggle = !toggle;
+      }, 12000);
     }
 
     updateDashboard();
