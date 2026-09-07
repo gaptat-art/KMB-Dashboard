@@ -168,7 +168,7 @@
     };
 
     var apiCache = {};
-    var cacheTimeout = 15000; // Cache responses for 15s to prevent redundant network lag
+    var cacheTimeout = 15000;
     var currentMode = getSavedMode();
 
     function getSavedMode() {
@@ -195,7 +195,6 @@
       }
 
       updateModeUI();
-      // Execute instantly without locking UI thread
       setTimeout(function() { updateDashboard(false); }, 10);
     }
 
@@ -267,16 +266,15 @@
 
     function formatTime(etaString) {
       if (!etaString) return "--:--";
-      var idx = etaString.indexOf("T");
-      if (idx !== -1 && etaString.length >= idx + 6) return etaString.substring(idx + 1, idx + 6);
-      var d = new Date(etaString);
-      var hours = (d.getUTCHours() + 8) % 24;
-      var minutes = d.getUTCMinutes();
-      return (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+      var parts = etaString.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (parts) {
+        return parts[4] + ":" + parts[5];
+      }
+      return "--:--";
     }
 
     function updateDashboard(forceRefresh) {
-      if (forceRefresh) apiCache = {}; // Clear cache if user hits explicit refresh
+      if (forceRefresh) apiCache = {};
       fetchWeather();
 
       var container = document.getElementById("dashboard-container");
@@ -312,10 +310,8 @@
         }
       }
 
-      // Single bulk DOM update to prevent E-Ink screen flashing multi-times
       container.innerHTML = htmlBuffer;
 
-      // Fetch dynamic content asynchronously per card
       for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
         for (var w = 0; w < group.watchlist.length; w++) {
@@ -408,7 +404,6 @@
       document.getElementById("last-updated").textContent = (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
     }
 
-    // Keep awake canvas script
     var canvas = document.getElementById('keep-awake-canvas');
     if (canvas && canvas.getContext) {
       var ctx = canvas.getContext('2d');
