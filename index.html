@@ -216,7 +216,7 @@
   </header>
 
   <div class="mode-container">
-    <button id="btn-worker" class="mode-btn active" onclick="setMode('worker')">打工仔模式</button>
+    <button id="btn-worker" class="mode-btn" onclick="setMode('worker')">打工仔模式</button>
     <button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常模式MTR</button>
     <button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常模式bus</button>
   </div>
@@ -267,14 +267,45 @@
       ]
     };
 
-    var currentMode = 'worker';
+    function getSavedMode() {
+      try {
+        var saved = localStorage.getItem("eta_dashboard_mode");
+        if (saved && MODES[saved]) {
+          return saved;
+        }
+      } catch (e) {}
+
+      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus)/);
+      if (match && MODES[match[1]]) {
+        return match[1];
+      }
+      
+      return "worker";
+    }
+
+    var currentMode = getSavedMode();
 
     function setMode(mode) {
       currentMode = mode;
-      document.getElementById("btn-worker").className = "mode-btn" + (mode === 'worker' ? " active" : "");
-      document.getElementById("btn-mtr").className = "mode-btn" + (mode === 'mtr' ? " active" : "");
-      document.getElementById("btn-bus").className = "mode-btn" + (mode === 'bus' ? " active" : "");
+      
+      try {
+        localStorage.setItem("eta_dashboard_mode", mode);
+      } catch (e) {}
+
+      if (window.history && window.history.replaceState) {
+        var url = new URL(window.location.href);
+        url.searchParams.set("mode", mode);
+        window.history.replaceState(null, "", url.toString());
+      }
+
+      updateModeUI();
       updateDashboard();
+    }
+
+    function updateModeUI() {
+      document.getElementById("btn-worker").className = "mode-btn" + (currentMode === 'worker' ? " active" : "");
+      document.getElementById("btn-mtr").className = "mode-btn" + (currentMode === 'mtr' ? " active" : "");
+      document.getElementById("btn-bus").className = "mode-btn" + (currentMode === 'bus' ? " active" : "");
     }
 
     function getWeatherConditionText(code) {
@@ -563,6 +594,7 @@
       }, 12000);
     }
 
+    updateModeUI();
     updateDashboard();
     setInterval(updateDashboard, 20000);
   </script>
