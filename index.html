@@ -109,7 +109,7 @@
       color: #000000;
       border: 3px solid #000000;
       padding: 8px 2px;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       font-weight: bold;
       cursor: pointer;
       text-align: center;
@@ -219,6 +219,7 @@
     <button id="btn-worker" class="mode-btn" onclick="setMode('worker')">打工仔模式</button>
     <button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常模式MTR</button>
     <button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常模式bus</button>
+    <button id="btn-travel" class="mode-btn" onclick="setMode('travel')">旅行模式</button>
   </div>
 
   <div id="dashboard-container"></div>
@@ -261,10 +262,17 @@
           watchlist: [
             { type: "KMB", route: "276",  stopId: "4E2EC89B41600D7E", serviceType: 1 },
             { type: "KMB", route: "276P", stopId: "4E2EC89B41600D7E", serviceType: 1 },
-            { type: "KMB", route: "268C",  stopId: "53AC50E46ABDA85B", serviceType: 1 },
+            { type: "KMB", route: "268C", stopId: "53AC50E46ABDA85B", serviceType: 1 },
             { type: "KMB", route: "68M",  stopId: "5CE91F113D08B843", serviceType: 1 },
             { type: "KMB", route: "68X",  stopId: "723EF8D7809D3ADB", serviceType: 1 },
-            { type: "KMB", route: "968",  stopId: "723EF8D7809D3ADB", serviceType: 1 },
+            { type: "KMB", route: "968",  stopId: "723EF8D7809D3ADB", serviceType: 1 }
+          ]
+        }
+      ],
+      travel: [
+        {
+          title: "形點出發",
+          watchlist: [
             { type: "KMB", route: "A36",  stopId: "7B93AB79165E79E6", serviceType: 1 }
           ]
         }
@@ -279,7 +287,7 @@
         }
       } catch (e) {}
 
-      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus)/);
+      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus|travel)/);
       if (match && MODES[match[1]]) {
         return match[1];
       }
@@ -310,6 +318,7 @@
       document.getElementById("btn-worker").className = "mode-btn" + (currentMode === 'worker' ? " active" : "");
       document.getElementById("btn-mtr").className = "mode-btn" + (currentMode === 'mtr' ? " active" : "");
       document.getElementById("btn-bus").className = "mode-btn" + (currentMode === 'bus' ? " active" : "");
+      document.getElementById("btn-travel").className = "mode-btn" + (currentMode === 'travel' ? " active" : "");
     }
 
     function getWeatherConditionText(code) {
