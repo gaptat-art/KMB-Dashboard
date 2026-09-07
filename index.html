@@ -50,13 +50,18 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 6px;
+      gap: 8px;
     }
 
     h1 {
       margin: 0;
-      font-size: 2.2rem;
+      font-size: 2rem;
       font-weight: bold;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
     }
 
     .header-row-2 {
@@ -93,6 +98,7 @@
       font-size: 1.5rem;
       font-weight: bold;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .mode-container {
@@ -185,6 +191,7 @@
 
     .eta-details {
       flex: 1;
+      min-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -196,6 +203,7 @@
       font-weight: bold;
       white-space: nowrap;
       text-align: right;
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -395,7 +403,6 @@
                   }
                 }
               }
-              // Sort departures by arrival time
               results.sort(function(a, b) {
                 return parseISOTime(a.time) - parseISOTime(b.time);
               });
