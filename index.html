@@ -42,7 +42,7 @@
     header {
       border-bottom: 3px solid #000000;
       padding-bottom: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       width: 100%;
     }
 
@@ -94,6 +94,31 @@
       font-size: 1.3rem;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    .mode-container {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .mode-btn {
+      flex: 1;
+      background-color: #ffffff;
+      color: #000000;
+      border: 3px solid #000000;
+      padding: 8px 2px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      border-radius: 4px;
+    }
+
+    .mode-btn.active {
+      background-color: #000000;
+      color: #ffffff;
     }
 
     .section-title {
@@ -190,6 +215,12 @@
     </div>
   </header>
 
+  <div class="mode-container">
+    <button id="btn-worker" class="mode-btn active" onclick="setMode('worker')">打工仔模式</button>
+    <button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常模式MTR</button>
+    <button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常模式bus</button>
+  </div>
+
   <div id="dashboard-container"></div>
 
   <!-- Invisible canvas loop to reduce Kindle screen auto-sleep -->
@@ -200,23 +231,51 @@
       document.body.className += ' landscape';
     }
 
-    var GROUPS = [
-      {
-        title: "港鐵元朗站",
-        watchlist: [
-          { type: "MTR", line: "TML", sta: "YUL", dest: "TUM", routeName: "屯馬綫", destName: "屯門" }
-        ]
-      },
-      {
-        title: "形點出發",
-        watchlist: [
-          { type: "KMB", route: "968X", stopId: "723EF8D7809D3ADB", serviceType: 1 },
-          { type: "KMB", route: "276P", stopId: "4E2EC89B41600D7E", serviceType: 1 },
-          { type: "KMB", route: "276",  stopId: "4E2EC89B41600D7E", serviceType: 1 },
-          { type: "KMB", route: "A36", stopId: "7B93AB79165E79E6", serviceType: 1 }
-        ]
-      }
-    ];
+    var MODES = {
+      worker: [
+        {
+          title: "港鐵元朗站",
+          watchlist: [
+            { type: "MTR", line: "TML", sta: "YUL", dest: "TUM", routeName: "屯馬綫", destName: "屯門" }
+          ]
+        },
+        {
+          title: "形點出發",
+          watchlist: [
+            { type: "KMB", route: "968X", stopId: "723EF8D7809D3ADB", serviceType: 1 }
+          ]
+        }
+      ],
+      mtr: [
+        {
+          title: "港鐵元朗站",
+          watchlist: [
+            { type: "MTR", line: "TML", sta: "YUL", dest: "TUM", routeName: "屯馬綫", destName: "屯門" },
+            { type: "MTR", line: "TML", sta: "YUL", dest: "WKS", routeName: "屯馬綫", destName: "烏溪沙" }
+          ]
+        }
+      ],
+      bus: [
+        {
+          title: "形點出發",
+          watchlist: [
+            { type: "KMB", route: "276",  stopId: "4E2EC89B41600D7E", serviceType: 1 },
+            { type: "KMB", route: "276P", stopId: "4E2EC89B41600D7E", serviceType: 1 },
+            { type: "KMB", route: "A36",  stopId: "4E2EC89B41600D7E", serviceType: 1 }
+          ]
+        }
+      ]
+    };
+
+    var currentMode = 'worker';
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById("btn-worker").className = "mode-btn" + (mode === 'worker' ? " active" : "");
+      document.getElementById("btn-mtr").className = "mode-btn" + (mode === 'mtr' ? " active" : "");
+      document.getElementById("btn-bus").className = "mode-btn" + (mode === 'bus' ? " active" : "");
+      updateDashboard();
+    }
 
     function getWeatherConditionText(code) {
       switch (code) {
@@ -395,7 +454,9 @@
       var container = document.getElementById("dashboard-container");
       container.innerHTML = "";
 
-      for (var g = 0; g < GROUPS.length; g++) {
+      var groups = MODES[currentMode] || [];
+
+      for (var g = 0; g < groups.length; g++) {
         (function(group) {
           var sectionHeader = document.createElement("div");
           sectionHeader.className = "section-title";
@@ -411,7 +472,7 @@
             for (var w = 0; w < group.watchlist.length; w++) {
               (function(target, targetIndex) {
                 var isMTR = (target.type === "MTR");
-                var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId);
+                var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId);
                 var routeTitle = isMTR ? (target.routeName || "MTR") : target.route;
                 var initialDest = isMTR ? ("往 " + (target.destName || "Loading...")) : "往 Loading...";
 
@@ -478,7 +539,7 @@
               })(group.watchlist[w], w);
             }
           }
-        })(GROUPS[g]);
+        })(groups[g]);
       }
 
       var now = new Date();
