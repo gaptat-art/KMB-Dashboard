@@ -66,7 +66,7 @@
       color: #000000;
       border: 3px solid #000000;
       padding: 8px 2px;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
       text-align: center;
@@ -116,13 +116,14 @@
     </table>
   </header>
 
-  <table style="width: 100%; border-collapse: separate; border-spacing: 3px; margin-bottom: 10px;">
+  <table style="width: 100%; border-collapse: separate; border-spacing: 2px; margin-bottom: 10px;">
     <tr>
-      <td style="width: 20%;"><button id="btn-worker" class="mode-btn" onclick="setMode('worker')">打工仔</button></td>
-      <td style="width: 20%;"><button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常MTR</button></td>
-      <td style="width: 20%;"><button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常Bus</button></td>
-      <td style="width: 20%;"><button id="btn-lagrove" class="mode-btn" onclick="setMode('lagrove')">原築</button></td>
-      <td style="width: 20%;"><button id="btn-travel" class="mode-btn" onclick="setMode('travel')">旅行</button></td>
+      <td style="width: 16.6%;"><button id="btn-worker" class="mode-btn" onclick="setMode('worker')">打工仔</button></td>
+      <td style="width: 16.6%;"><button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常MTR</button></td>
+      <td style="width: 16.6%;"><button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常Bus</button></td>
+      <td style="width: 16.6%;"><button id="btn-lagrove" class="mode-btn" onclick="setMode('lagrove')">原築</button></td>
+      <td style="width: 16.6%;"><button id="btn-ports" class="mode-btn" onclick="setMode('ports')">深圳口岸</button></td>
+      <td style="width: 16.6%;"><button id="btn-travel" class="mode-btn" onclick="setMode('travel')">旅行</button></td>
     </tr>
   </table>
 
@@ -184,6 +185,21 @@
           ]
         }
       ],
+      ports: [
+        { title: "深圳灣口岸", watchlist: [
+            { type: "KMB", route: "B2P", stopId: "92E2DFDC49B8CEF5", serviceType: 1 },
+            { type: "KMB", route: "XB2", stopId: "C2BECAEBB212CC19", serviceType: 1 }
+          ]
+        },
+        { title: "福田口岸 (落馬洲)", watchlist: [
+            { type: "KMB", route: "B1", stopId: "87E436C0C5646BCE", serviceType: 1 }
+          ]
+        },
+        { title: "香園圍口岸", watchlist: [
+            { type: "KMB", route: "B9", stopId: "4E2EC89B41600D7E", serviceType: 1 }
+          ]
+        }
+      ],
       travel: [
         { title: "形點出發", watchlist: [
             { type: "KMB", route: "A36",  stopId: "7B93AB79165E79E6", serviceType: 1 },
@@ -203,7 +219,7 @@
         var saved = localStorage.getItem("eta_dashboard_mode");
         if (saved && MODES[saved]) return saved;
       } catch (e) {}
-      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus|lagrove|travel)/);
+      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus|lagrove|ports|travel)/);
       return (match && MODES[match[1]]) ? match[1] : "worker";
     }
 
@@ -226,7 +242,7 @@
     }
 
     function updateModeUI() {
-      var modes = ['worker', 'mtr', 'bus', 'lagrove', 'travel'];
+      var modes = ['worker', 'mtr', 'bus', 'lagrove', 'ports', 'travel'];
       for (var i = 0; i < modes.length; i++) {
         var btn = document.getElementById("btn-" + modes[i]);
         if (btn) {
@@ -332,14 +348,13 @@
           for (var t = 0; t < group.times.length; t++) {
             var tStr = group.times[t];
             var tMs = parseTimeHM(tStr);
-            if (tMs >= nowMs - 60000) { // keep recently passed by a minute or show upcoming
+            if (tMs >= nowMs - 60000) {
               upcoming.push(tStr);
               if (upcoming.length >= 3) break;
             }
           }
 
           if (upcoming.length === 0) {
-            // If all passed for the day, show the first few of the next day or a notice
             upcoming = [group.times[0], group.times[1], group.times[2]];
           }
 
@@ -373,7 +388,7 @@
           for (var w = 0; w < group.watchlist.length; w++) {
             var target = group.watchlist[w];
             var isMTR = (target.type === "MTR");
-            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + w) : ("kmb-" + target.route + "-" + target.stopId);
+            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + w) : ("kmb-" + target.route + "-" + target.stopId + "-" + g + "-" + w);
             var routeTitle = isMTR ? (target.routeName || "MTR") : target.route;
             var initialDest = isMTR ? ("往 " + (target.destName || "Loading...")) : "往 Loading...";
 
@@ -399,14 +414,14 @@
         if (group.type === "STATIC_NOTICE" || group.type === "TIMETABLE_LIST") continue;
 
         for (var w = 0; w < group.watchlist.length; w++) {
-          (function(target, targetIndex) {
+          (function(target, targetIndex, groupIndex) {
             var isMTR = (target.type === "MTR");
-            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId);
+            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId + "-" + groupIndex + "-" + targetIndex);
 
             if (isMTR) {
               var mtrUrl = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=" + target.line + "&sta=" + target.sta;
               fetchWithCache(mtrUrl, function(json) {
-                var listElem = document.getElementById("list-" + cardId);
+                var listElem =  document.getElementById("list-" + cardId);
                 if (!listElem) return;
                 
                 var key = target.line + "-" + target.sta;
@@ -477,7 +492,7 @@
                 listElem.innerHTML = etaRows;
               });
             }
-          })(group.watchlist[w], w);
+          })(group.watchlist[w], w, g);
         }
       }
 
