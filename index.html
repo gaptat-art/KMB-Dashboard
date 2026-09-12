@@ -160,27 +160,27 @@
       ],
       lagrove: [
         { 
-          title: "原築開出 (往朗明街)", 
-          type: "STATIC_NOTICE",
-          content: [
-            { label: "06:30 - 09:00", val: "每 15 分鐘一班" },
-            { label: "09:00 - 12:00", val: "每 20 分鐘一班" },
-            { label: "12:00 - 13:00", val: "午膳暫停服務" },
-            { label: "13:00 - 16:00", val: "每 20 分鐘一班" },
-            { label: "16:00 - 20:00", val: "每 15 分鐘一班" },
-            { label: "20:00 - 23:20", val: "每 20 分鐘一班" }
+          title: "原築開出 (La Grove)", 
+          type: "TIMETABLE_LIST",
+          times: [
+            "06:30", "07:00", "07:15", "07:35", "07:55", "08:15", "08:35", "08:55",
+            "09:15", "09:35", "09:55", "10:15", "10:35", "10:55", "11:15", "11:35",
+            "11:55", "12:35", "13:15", "13:55", "14:15", "14:35", "14:55", "15:15",
+            "15:35", "15:55", "16:15", "16:35", "16:55", "17:15", "17:35", "17:55",
+            "18:15", "18:35", "18:55", "19:15", "19:35", "19:55", "20:15", "20:35",
+            "20:55", "21:15", "21:35", "21:55", "22:15", "22:45", "23:15"
           ]
         },
         { 
-          title: "朗明街開出 (往原築)", 
-          type: "STATIC_NOTICE",
-          content: [
-            { label: "06:45 - 09:15", val: "每 15 分鐘一班" },
-            { label: "09:15 - 12:15", val: "每 20 分鐘一班" },
-            { label: "12:15 - 13:15", val: "午膳暫停服務" },
-            { label: "13:15 - 16:15", val: "每 20 分鐘一班" },
-            { label: "16:15 - 20:15", val: "每 15 分鐘一班" },
-            { label: "20:15 - 23:35", val: "每 20 分鐘一班" }
+          title: "形點II開出 (Yoho Mall II)", 
+          type: "TIMETABLE_LIST",
+          times: [
+            "06:45", "07:15", "07:30", "07:50", "08:10", "08:30", "08:50", "09:10",
+            "09:30", "09:50", "10:10", "10:30", "10:50", "11:10", "11:30", "11:50",
+            "12:10", "12:50", "13:30", "14:10", "14:30", "14:50", "15:10", "15:30",
+            "15:50", "16:10", "16:30", "16:50", "17:10", "17:30", "17:50", "18:10",
+            "18:30", "18:50", "19:10", "19:30", "19:50", "20:10", "20:30", "20:50",
+            "21:10", "21:30", "21:50", "22:10", "22:30", "23:00", "23:30"
           ]
         }
       ],
@@ -283,12 +283,25 @@
       return new Date(str).getTime();
     }
 
+    function parseTimeHM(timeStr) {
+      var parts = timeStr.split(":");
+      var now = new Date();
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(parts[0], 10), parseInt(parts[1], 10), 0);
+      return d.getTime();
+    }
+
     function calculateMinutes(etaString) {
       if (!etaString) return "No data";
       var etaMs = parseISOTime(etaString);
       if (isNaN(etaMs)) return "No data";
       var diffMins = Math.ceil((etaMs - new Date().getTime()) / 60000);
       return diffMins <= 0 ? "Arriving" : diffMins + " min";
+    }
+
+    function calculateStaticMinutes(timeStr) {
+      var timeMs = parseTimeHM(timeStr);
+      var diffMins = Math.ceil((timeMs - new Date().getTime()) / 60000);
+      return diffMins <= 0 ? "Departed" : diffMins + " min";
     }
 
     function formatTime(etaString) {
@@ -308,11 +321,42 @@
       var groups = MODES[currentMode] || [];
       var htmlBuffer = "";
 
+      var nowMs = new Date().getTime();
+
       for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
         htmlBuffer += '<div class="section-title">' + group.title + '</div>';
 
-        if (group.type === "STATIC_NOTICE") {
+        if (group.type === "TIMETABLE_LIST") {
+          var upcoming = [];
+          for (var t = 0; t < group.times.length; t++) {
+            var tStr = group.times[t];
+            var tMs = parseTimeHM(tStr);
+            if (tMs >= nowMs - 60000) { // keep recently passed by a minute or show upcoming
+              upcoming.push(tStr);
+              if (upcoming.length >= 3) break;
+            }
+          }
+
+          if (upcoming.length === 0) {
+            // If all passed for the day, show the first few of the next day or a notice
+            upcoming = [group.times[0], group.times[1], group.times[2]];
+          }
+
+          htmlBuffer += '<div class="card"><table style="width: 100%; border-collapse: collapse;">';
+          for (var i = 0; i < upcoming.length; i++) {
+            var timeItem = upcoming[i];
+            var minText = calculateStaticMinutes(timeItem);
+            var borderStyle = i < upcoming.length - 1 ? "border-bottom: 1px dashed #000000;" : "";
+
+            htmlBuffer += '<tr style="' + borderStyle + '">' +
+              '<td style="font-size: 1.5rem; padding: 8px 0; white-space: nowrap;">' + timeItem + ' 班次</td>' +
+              '<td style="font-size: 1.9rem; font-weight: bold; text-align: right; white-space: nowrap; padding: 8px 0;">' + minText + '</td>' +
+            '</tr>';
+          }
+          htmlBuffer += '</table></div>';
+
+        } else if (group.type === "STATIC_NOTICE") {
           htmlBuffer += '<div class="card"><table style="width: 100%; border-collapse: collapse;">';
           for (var n = 0; n < group.content.length; n++) {
             var row = group.content[n];
@@ -352,7 +396,7 @@
 
       for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
-        if (group.type === "STATIC_NOTICE") continue;
+        if (group.type === "STATIC_NOTICE" || group.type === "TIMETABLE_LIST") continue;
 
         for (var w = 0; w < group.watchlist.length; w++) {
           (function(target, targetIndex) {
