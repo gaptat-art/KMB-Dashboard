@@ -187,8 +187,9 @@
       travel: [
         { title: "形點出發", watchlist: [
             { type: "KMB", route: "A36",  stopId: "7B93AB79165E79E6", serviceType: 1 },
-            { type: "KMB", route: "B1",  stopId: "87E436C0C5646BCE", serviceType: 1 },
-            { type: "KMB", route: "B9",  stopId: "4E2EC89B41600D7E", serviceType: 1 }
+            { type: "KMB", route: "B1",   stopId: "87E436C0C5646BCE", serviceType: 1 },
+            { type: "KMB", route: "B2",   stopId: "4E2EC89B41600D7E", serviceType: 1 },
+            { type: "KMB", route: "B9",   stopId: "4E2EC89B41600D7E", serviceType: 1 }
           ]
         }
       ]
@@ -332,14 +333,13 @@
           for (var t = 0; t < group.times.length; t++) {
             var tStr = group.times[t];
             var tMs = parseTimeHM(tStr);
-            if (tMs >= nowMs - 60000) { // keep recently passed by a minute or show upcoming
+            if (tMs >= nowMs - 60000) { 
               upcoming.push(tStr);
               if (upcoming.length >= 3) break;
             }
           }
 
           if (upcoming.length === 0) {
-            // If all passed for the day, show the first few of the next day or a notice
             upcoming = [group.times[0], group.times[1], group.times[2]];
           }
 
