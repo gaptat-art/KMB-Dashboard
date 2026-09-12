@@ -187,8 +187,8 @@
       travel: [
         { title: "形點出發", watchlist: [
             { type: "KMB", route: "A36",  stopId: "7B93AB79165E79E6", serviceType: 1 },
+            { type: "NLB", route: "XB2",  stopId: "XB2-YUL-1", routeName: "XB2" },
             { type: "KMB", route: "B1",   stopId: "87E436C0C5646BCE", serviceType: 1 },
-            { type: "KMB", route: "B2",   stopId: "4E2EC89B41600D7E", serviceType: 1 },
             { type: "KMB", route: "B9",   stopId: "4E2EC89B41600D7E", serviceType: 1 }
           ]
         }
@@ -373,9 +373,10 @@
           for (var w = 0; w < group.watchlist.length; w++) {
             var target = group.watchlist[w];
             var isMTR = (target.type === "MTR");
-            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + w) : ("kmb-" + target.route + "-" + target.stopId);
+            var isNLB = (target.type === "NLB");
+            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + w) : (isNLB ? ("nlb-" + target.route + "-" + w) : ("kmb-" + target.route + "-" + target.stopId));
             var routeTitle = isMTR ? (target.routeName || "MTR") : target.route;
-            var initialDest = isMTR ? ("往 " + (target.destName || "Loading...")) : "往 Loading...";
+            var initialDest = isMTR ? ("往 " + (target.destName || "Loading...")) : (isNLB ? "往 深圳灣口岸" : "往 Loading...");
 
             htmlBuffer += '<div class="card">' +
               '<table style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #000000; padding-bottom: 6px; margin-bottom: 8px;">' +
@@ -401,7 +402,8 @@
         for (var w = 0; w < group.watchlist.length; w++) {
           (function(target, targetIndex) {
             var isMTR = (target.type === "MTR");
-            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId);
+            var isNLB = (target.type === "NLB");
+            var cardId = isMTR ? ("mtr-" + target.line + "-" + target.sta + "-" + target.dest + "-" + targetIndex) : (isNLB ? ("nlb-" + target.route + "-" + targetIndex) : ("kmb-" + target.route + "-" + target.stopId));
 
             if (isMTR) {
               var mtrUrl = "https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=" + target.line + "&sta=" + target.sta;
@@ -439,6 +441,33 @@
 
                     etaRows += '<tr style="' + borderStyle + '">' +
                       '<td style="font-size: 1.5rem; padding: 8px 0; white-space: nowrap;">' + timeFormatted + platRemark + '</td>' +
+                      '<td style="font-size: 1.9rem; font-weight: bold; text-align: right; white-space: nowrap; padding: 8px 0;">' + minText + '</td>' +
+                    '</tr>';
+                  }
+                }
+                listElem.innerHTML = etaRows;
+              });
+            } else if (isNLB) {
+              var nlbUrl = "https://rt.data.gov.hk/v2/transport/nlb/stop.php?action=eta&route=XB2&stopId=1";
+              fetchWithCache(nlbUrl, function(json) {
+                var listElem = document.getElementById("list-" + cardId);
+                if (!listElem) return;
+
+                var etas = json && json.eta ? json.eta : [];
+                var etaRows = "";
+                if (etas.length === 0) {
+                  etaRows = '<tr><td colspan="2" style="font-size: 1.5rem; padding: 6px 0;">No upcoming departures</td></tr>';
+                } else {
+                  var limit = etas.length < 3 ? etas.length : 3;
+                  for (var i = 0; i < limit; i++) {
+                    var item = etas[i];
+                    var minText = calculateMinutes(item.estimateTime);
+                    var timeFormatted = formatTime(item.estimateTime);
+                    var remark = item.remarks_tc ? " (" + item.remarks_tc + ")" : "";
+                    var borderStyle = i < limit - 1 ? "border-bottom: 1px dashed #000000;" : "";
+
+                    etaRows += '<tr style="' + borderStyle + '">' +
+                      '<td style="font-size: 1.5rem; padding: 8px 0; white-space: nowrap;">' + timeFormatted + remark + '</td>' +
                       '<td style="font-size: 1.9rem; font-weight: bold; text-align: right; white-space: nowrap; padding: 8px 0;">' + minText + '</td>' +
                     '</tr>';
                   }
