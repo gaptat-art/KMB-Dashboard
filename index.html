@@ -66,7 +66,7 @@
       color: #000000;
       border: 3px solid #000000;
       padding: 8px 2px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: bold;
       cursor: pointer;
       text-align: center;
@@ -116,12 +116,13 @@
     </table>
   </header>
 
-  <table style="width: 100%; border-collapse: separate; border-spacing: 4px; margin-bottom: 10px;">
+  <table style="width: 100%; border-collapse: separate; border-spacing: 3px; margin-bottom: 10px;">
     <tr>
-      <td style="width: 25%;"><button id="btn-worker" class="mode-btn" onclick="setMode('worker')">打工仔</button></td>
-      <td style="width: 25%;"><button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常MTR</button></td>
-      <td style="width: 25%;"><button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常Bus</button></td>
-      <td style="width: 25%;"><button id="btn-travel" class="mode-btn" onclick="setMode('travel')">旅行</button></td>
+      <td style="width: 20%;"><button id="btn-worker" class="mode-btn" onclick="setMode('worker')">打工仔</button></td>
+      <td style="width: 20%;"><button id="btn-mtr" class="mode-btn" onclick="setMode('mtr')">日常MTR</button></td>
+      <td style="width: 20%;"><button id="btn-bus" class="mode-btn" onclick="setMode('bus')">日常Bus</button></td>
+      <td style="width: 20%;"><button id="btn-lagrove" class="mode-btn" onclick="setMode('lagrove')">原築</button></td>
+      <td style="width: 20%;"><button id="btn-travel" class="mode-btn" onclick="setMode('travel')">旅行</button></td>
     </tr>
   </table>
 
@@ -157,6 +158,19 @@
           ]
         }
       ],
+      lagrove: [
+        { 
+          title: "原築 NR964 專線", 
+          type: "STATIC_NOTICE",
+          content: [
+            { label: "路線走向", val: "原築 ⇄ 朗明街 (經馬棠路)" },
+            { label: "原築開出", val: "06:30, 07:00-08:50 (15-20分), 09:00-11:00 (20分), 12:35, 13:15, 13:55起至22:55每20分一班" },
+            { label: "朗明街開出", val: "06:45, 07:15-09:10 (15-20分), 09:10-11:20 (20分), 12:50, 13:30, 14:10起至23:30每20分一班" },
+            { label: "備註", val: "限住戶乘搭，只接受八達通付款" }
+          ]
+        },
+        { title: "形點/元朗站接駁", watchlist: [{ type: "KMB", route: "B9", stopId: "4E2EC89B41600D7E", serviceType: 1 }] }
+      ],
       travel: [
         { title: "形點出發", watchlist: [
             { type: "KMB", route: "A36",  stopId: "7B93AB79165E79E6", serviceType: 1 },
@@ -176,7 +190,7 @@
         var saved = localStorage.getItem("eta_dashboard_mode");
         if (saved && MODES[saved]) return saved;
       } catch (e) {}
-      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus|travel)/);
+      var match = window.location.search.match(/[?&]mode=(worker|mtr|bus|lagrove|travel)/);
       return (match && MODES[match[1]]) ? match[1] : "worker";
     }
 
@@ -199,7 +213,7 @@
     }
 
     function updateModeUI() {
-      var modes = ['worker', 'mtr', 'bus', 'travel'];
+      var modes = ['worker', 'mtr', 'bus', 'lagrove', 'travel'];
       for (var i = 0; i < modes.length; i++) {
         var btn = document.getElementById("btn-" + modes[i]);
         if (btn) {
@@ -285,7 +299,18 @@
         var group = groups[g];
         htmlBuffer += '<div class="section-title">' + group.title + '</div>';
 
-        if (group.watchlist.length === 0) {
+        if (group.type === "STATIC_NOTICE") {
+          htmlBuffer += '<div class="card"><table style="width: 100%; border-collapse: collapse;">';
+          for (var n = 0; n < group.content.length; n++) {
+            var row = group.content[n];
+            var borderStyle = n < group.content.length - 1 ? "border-bottom: 1px dashed #000000;" : "";
+            htmlBuffer += '<tr style="' + borderStyle + '">' +
+              '<td style="font-size: 1.4rem; font-weight: bold; padding: 8px 0; width: 30%; white-space: nowrap; vertical-align: top;">' + row.label + '</td>' +
+              '<td style="font-size: 1.4rem; padding: 8px 0; text-align: right; vertical-align: top;">' + row.val + '</td>' +
+            '</tr>';
+          }
+          htmlBuffer += '</table></div>';
+        } else if (group.watchlist.length === 0) {
           htmlBuffer += '<div class="card"><div style="font-size: 1.5rem; font-weight: bold;">No routes configured.</div></div>';
         } else {
           for (var w = 0; w < group.watchlist.length; w++) {
@@ -314,6 +339,8 @@
 
       for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
+        if (group.type === "STATIC_NOTICE") continue;
+
         for (var w = 0; w < group.watchlist.length; w++) {
           (function(target, targetIndex) {
             var isMTR = (target.type === "MTR");
